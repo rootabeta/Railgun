@@ -299,6 +299,15 @@ document.addEventListener('keyup', function(event) {
 					warnStatus("Not looking at region");
 				}
 				break;
+
+			// Endorse a nation
+			case 'KeyS':
+				if (!document.location.href.includes("nation=")) { 
+					warnStatus("Must be on a nation page to endorse");
+				} else { 
+					let targetnation = document.getElementsByClassName("endorse")[0].form.children.nation.value ;
+					makeRequest(USERCLICK, "/cgi-bin/endorse.cgi", `nation=${targetnation}&localid=${localid}&action=endorse`, `Endorsed ${targetnation}`);
+				}
 		}
 	}
 });

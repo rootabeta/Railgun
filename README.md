@@ -12,6 +12,7 @@ The current list of implemented keybinds is:
 - F - Move to the current region
 - D - RO yourself in current region
 - E - Join (on application) or resign from (anywhere else) WA
+- S - Endorse a nation
 
 ## DISCLAIMER
 
