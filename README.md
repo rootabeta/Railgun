@@ -2,8 +2,6 @@
 
 A single-tap keybinder tool for NationStates raiding
 
-***WARNING: ONLY USE WITH FIREFOX FOR THE TIME BEING***
-Chrome has some weirdness with custom User-Agents that I need to investigate before declaring this tool ready for use on Chrome - I know the user-agents work fine on Firefox, but haven't tested on Chromium-based browsers. For the time being, use with caution. 
 I reiterate that this tool is an *experimental prototype* and should not yet be relied on for public consumption - it is published for legality and accountability reasons, *not* because it is ready for generalized use. One day, this warning will disappear and Railgun will appear on the Chrome and Firefox stores, and on that day, you can use it in your raids - but for now, developers only, please.
 
 ## Keybinds
