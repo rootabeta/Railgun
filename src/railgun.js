@@ -1,8 +1,66 @@
 // Get version of Railgun, for crafting requests
 let VERSION = chrome.runtime.getManifest().version;
-let USER = "Volstrostia"; //TODO: Require user to set user-agent before use! See YAFFeather settings!
-let USER_AGENT = `Railgun/${VERSION} (By: Volstrostia; usedBy:${USER})`;
+
+let USER = localStorage.getItem("rguser");
+let rotitle = localStorage.getItem("rgrotitle") || "Railgun";
+let suctitle = localStorage.getItem("rgsuctitle") || "Task Failed Successorly";
+let govtitle = localStorage.getItem("rggovtitle") || "Maintain A";
+let JUMP_POINT = localStorage.getItem("rgjumppoint") || "suspicious";
+let USER_AGENT = `Railgun/${VERSION} (By: Volstrostia; usedBy: ${USER})`;
+
 console.debug(USER_AGENT);
+
+function loadSettings(settings) { 
+	//Whenever this function fires, we know that we have new data from settings
+	//This means we can discard whatever we had, and update to the new stuff
+	//This way, we can change things and have it reflected on the next refresh
+	if (settings.user) { 
+		USER = settings.user;
+		localStorage.setItem("rguser", settings.user);
+	}
+
+	if (settings.ro) { 
+		rotitle = settings.ro;
+		localStorage.setItem("rgrotitle",settings.ro);
+	}
+
+	if (settings.gov) { 
+		govtitle = settings.gov;
+		localStorage.setItem("rggovtitle",settings.gov);
+	}
+
+	if (settings.suc) { 
+		suctitle = settings.suc;
+		localStorage.setItem("rgsuctitle",settings.suc);
+	}
+
+	if (settings.jp) { 
+		JUMP_POINT = settings.jp;
+		localStorage.setItem("rgjumppoint",settings.jp);
+	}
+}
+
+function settingsFailed(error) { 
+	console.error("Railgun: Failed to load settings");
+	console.error(error);
+
+	// Assume failed condition
+	// If we already have a good value, use that. Otherwise, use defaults.
+	if (!localStorage.getItem("rguser")) { 
+		failStatus("Railgun failed to load user from settings and cannot acquire cached value");
+		lockSimul();
+	} else { 
+		let USER = localStorage.getItem("rguser");
+	}
+
+	let rotitle = localStorage.getItem("rgrotitle") || "Railgun";
+	let suctitle = localStorage.getItem("rgsuctitle") || "Task Failed Successorly";
+	let govtitle = localStorage.getItem("rggovtitle") || "Maintain A";
+	let JUMP_POINT = localStorage.getItem("rgjumppoint") || "Suspicious";
+}
+
+const getting = chrome.storage.sync.get();
+getting.then(loadSettings, settingsFailed);
 
 // Create status popup
 let statusBox = document.createElement("div");
@@ -38,8 +96,12 @@ function successStatus(message) {
 	statusText.textContent = message;
 }
 
-updStatus(`Railgun ${VERSION} loaded, awaiting command`);
-
+if (USER != "") { 
+	updStatus(`Railgun ${VERSION} loaded (user: ${USER}), awaiting command`);
+} else { 
+	failStatus("User could not be pulled from settings - setup is required");
+	// chrome.runtime.openOptionsPage();
+}
 makeCenter.appendChild(statusText);
 statusBox.appendChild(makeCenter);
 
@@ -88,14 +150,25 @@ function some(name) {
 
 // Build overhead for sending requests when we need to
 // TODO: Make these values persistant and refreshed every pageload - including XMLHttpRequests!
-var localid = some("localid");
-var chk = some("chk");
-var region = some("region_name") || document.getElementById("panelregionbar").children[0].href.split("=")[1];
-var nation = document.getElementsByClassName("bellink")[0].href.split("=")[1]; //TODO: template=none
+var localid = some("localid") || localStorage.getItem("rglocalid");
+var chk = some("chk") || localStorage.getItem("rgchk");
+var region = some("region_name") || localStorage.getItem("rgregion");
+var nation = document.getElementsByClassName("bellink")[0].href.split("=")[1] || localStorage.getItem("rgnation");
+
+// Write back values into local cache
+localStorage.setItem("rglocalid", localid);
+localStorage.setItem("rgchk", chk); // Useful for stuff like resignation
+localStorage.setItem("rgnation", nation); // Current nation
+localStorage.setItem("rgregion", region); // *Current* region
+
 console.debug(`LocalID: ${localid} | chk: ${chk}`);
 
 // Where the magic happens
 document.addEventListener('keyup', function(event) { 
+	if (USER == "") { 
+		failStatus("Cannot perform activity without user ID. Edit settings and refresh.");
+		return;
+	}
 	if (event.shiftKey || event.ctrlKey || event.altKey || document.activeElement.tagName == 'INPUT' || document.activeElement.tagName == 'TEXTAREA') { // locks you out of the script while you're holding down a modifier key or typing in an input
 		return;
 	} else {
@@ -105,7 +178,77 @@ document.addEventListener('keyup', function(event) {
 			return;
 		}
 		let USERCLICK = Date.now();
+		const xhr = new XMLHttpRequest(); // Used to fire off web request
 		switch (event.code) { // event.code is the key that was pressed
+			// Resign WA
+			case 'KeyE': 
+				lockSimul();
+
+				if (document.location.href.includes("page=join_WA")) { 
+					updStatus("Joining the World Assembly");
+
+					let APPID = document.getElementsByName("appid")[0].value;
+					let nation = document.getElementsByClassName("nlink")[0].href.split("=")[1];
+
+					localStorage.setItem("rgnation", nation); // Current nation
+					localStorage.setItem("rgchk", ""); // Clear out auth values
+					localStorage.setItem("rglocalid", "");
+					// Copy to clipboard
+					navigator.clipboard.writeText(`https://www.nationstates.net/nation=${nation}`); 
+
+
+					// TODO: Surely it's easier to just click the button
+					// Then again, that requires debugging onclick
+					xhr.open("POST", `/cgi-bin/join_un.cgi/template-overall=none/userclick=${USERCLICK}`);
+					xhr.setRequestHeader("User-Agent", USER_AGENT);
+					// Deliver URL-Encoded form data, like NS site normally does
+					xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+					xhr.onload = () => { 
+						if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
+							successStatus("Joined WA successfully");
+							// Finished request, unlock simultaneity
+							unlockSimul();
+						}
+					};
+
+					// Send request to join WA
+					xhr.send(`nation=${nation}&appid=${APPID}`);
+
+				} else { 
+
+					updStatus("Resigning from the World Assembly");
+					if (!chk) { 
+						failStatus("Could not fetch chk value");
+						// document.location.href = "https://www.nationstates.net/page=un/template-overall=none";
+					}
+
+					// Set userclick and useragent
+					xhr.open("POST", `/page=UN_status/template-overall=none/userclick=${USERCLICK}`);
+					xhr.setRequestHeader("User-Agent", USER_AGENT);
+					// Deliver URL-Encoded form data, like NS site normally does
+					xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+					xhr.onload = () => { 
+						if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
+							successStatus("Resigned from WA successfully");
+							// Finished request, unlock simultaneity
+							unlockSimul();
+						}
+					};
+
+					// Send request to leave WA
+					xhr.send(`action=leave_UN&chk=${chk}&submit=1`);
+				}
+
+				break;
+
+			// Go to sus
+			case 'KeyB':
+				updStatus(`Redirecting to ${JUMP_POINT}`);
+				lockSimul();
+				document.location.href = `https://www.nationstates.net/region=${JUMP_POINT}`;
+				break;
+
+			// Refresh
 			case 'KeyA': 
 				updStatus("Triggering refresh of page");
 				lockSimul();
@@ -113,6 +256,7 @@ document.addEventListener('keyup', function(event) {
 				// No need to unlock, page will be reloaded
 				break;
 
+			// RO yourself
 			case 'KeyD':
 				if (!region) { 
 					failStatus("Cannot detect current region");
@@ -120,7 +264,6 @@ document.addEventListener('keyup', function(event) {
 				}
 				lockSimul();
 				updStatus(`ROing in ${region}`);
-				const xhr = new XMLHttpRequest(); 
 				// Set userclick and useragent
 				xhr.open("POST", `/region=${region}/template-overall=none/userclick=${USERCLICK}`);
 				xhr.setRequestHeader("User-Agent", USER_AGENT);
@@ -134,10 +277,11 @@ document.addEventListener('keyup', function(event) {
 					}
 				};
 
-				let RO_name = "Railgun"; //TODO: Custom RO title
+				let RO_name = rotitle;
 				// Tagging RO options
 				xhr.send(`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`);
 
+			// Move to region
 			case 'KeyF':
 				if (document.location.href.includes("region=")) { 
 					if (!region) {
@@ -148,7 +292,6 @@ document.addEventListener('keyup', function(event) {
 					updStatus(`Moving to region ${region}`);
 					lockSimul();
 
-					const xhr = new XMLHttpRequest(); 
 					// Set userclick and useragent
 					xhr.open("POST", `/page=change_region/template-overall=none/userclick=${USERCLICK}`);
 					xhr.setRequestHeader("User-Agent", USER_AGENT);
