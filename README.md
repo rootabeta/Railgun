@@ -8,6 +8,7 @@ The current list of implemented keybinds is:
 
 - A - Refresh the current page
 - F - Move to the current region
+- D - RO yourself in current region
 
 ## DISCLAIMER
 
