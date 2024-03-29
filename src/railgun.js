@@ -87,10 +87,11 @@ function some(name) {
 }
 
 // Build overhead for sending requests when we need to
-
-let localid = some("localid");
-let chk = some("chk");
-
+// TODO: Make these values persistant and refreshed every pageload - including XMLHttpRequests!
+var localid = some("localid");
+var chk = some("chk");
+var region = some("region_name") || document.getElementById("panelregionbar").children[0].href.split("=")[1];
+var nation = document.getElementsByClassName("bellink")[0].href.split("=")[1]; //TODO: template=none
 console.debug(`LocalID: ${localid} | chk: ${chk}`);
 
 // Where the magic happens
@@ -112,10 +113,34 @@ document.addEventListener('keyup', function(event) {
 				// No need to unlock, page will be reloaded
 				break;
 
+			case 'KeyD':
+				if (!region) { 
+					failStatus("Cannot detect current region");
+					break;
+				}
+				lockSimul();
+				updStatus(`ROing in ${region}`);
+				const xhr = new XMLHttpRequest(); 
+				// Set userclick and useragent
+				xhr.open("POST", `/region=${region}/template-overall=none/userclick=${USERCLICK}`);
+				xhr.setRequestHeader("User-Agent", USER_AGENT);
+				// Deliver URL-Encoded form data, like NS site normally does
+				xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+				xhr.onload = () => { 
+					if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
+						successStatus(`RO'd in ${region} successfully`);
+						// Finished request, unlock simultaneity
+						unlockSimul();
+					}
+				};
+
+				let RO_name = "Railgun"; //TODO: Custom RO title
+				// Tagging RO options
+				xhr.send(`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`);
+
 			case 'KeyF':
 				if (document.location.href.includes("region=")) { 
-					let region = some("region_name"); 
-					if (!region) { 
+					if (!region) {
 						warnStatus("Cannot move to region you are already in");
 						break;
 					}
@@ -125,12 +150,13 @@ document.addEventListener('keyup', function(event) {
 
 					const xhr = new XMLHttpRequest(); 
 					// Set userclick and useragent
-					xhr.open("POST", `/page=change_region/userclick=${USERCLICK}`);
+					xhr.open("POST", `/page=change_region/template-overall=none/userclick=${USERCLICK}`);
 					xhr.setRequestHeader("User-Agent", USER_AGENT);
 					// Deliver URL-Encoded form data, like NS site normally does
 					xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 					xhr.onload = () => { 
 						if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
+							// TODO: Scrape values like chk, localid, WA membership status, etc. where relevant
 							successStatus(`Moved to ${region} successfully`);
 							// Finished request, unlock simultaneity
 							unlockSimul();
@@ -138,8 +164,8 @@ document.addEventListener('keyup', function(event) {
 					};
 
 					xhr.send(`localid=${localid}&region_name=${region}&move_region=1`);
-					break;
 
+					break;
 				} else { 
 					warnStatus("Not looking at region");
 				}
