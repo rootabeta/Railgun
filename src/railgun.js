@@ -6,9 +6,10 @@ let rotitle = localStorage.getItem("rgrotitle") || "Railgun";
 let suctitle = localStorage.getItem("rgsuctitle") || "Task Failed Successorly";
 let govtitle = localStorage.getItem("rggovtitle") || "Maintain A";
 let JUMP_POINT = localStorage.getItem("rgjumppoint") || "suspicious";
-let USER_AGENT = `Railgun/${VERSION} (By: Volstrostia; usedBy: ${USER})`;
 
-console.debug(USER_AGENT);
+// Identification strings
+let USER_AGENT = `Railgun/${VERSION} (By: Volstrostia; usedBy: ${USER})`;
+let USER_URL = `Railgun_${VERSION}_by_Volstrostia_usedBy_${USER}`; // For chrome
 
 function loadSettings(settings) { 
 	//Whenever this function fires, we know that we have new data from settings
@@ -163,6 +164,38 @@ localStorage.setItem("rgregion", region); // *Current* region
 
 console.debug(`LocalID: ${localid} | chk: ${chk}`);
 
+// Convenient wrapper around POST requests that attaches user agent, userclick, and handles simultaneity
+function makeRequest(userclick, url, payload, successMessage) { 
+	// Debugging: make sure user identifiers are available and correct
+	console.debug(USER_AGENT);
+	console.debug(USER_URL);
+
+	// Lock simultaneity items
+	lockSimul()
+
+	const xhr = new XMLHttpRequest();
+
+	// Attach userclick and user-agent to URL
+	xhr.open("POST", `${url}/template-overall=none/?script=${USER_URL}&userclick=${userclick}`);
+	xhr.setRequestHeader("User-Agent", USER_AGENT); // Additionally attach user-agent to request if possible
+
+	// Deliver URL-Encoded form data, like NS site normally does
+	xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+	// Only allow unlock once the request is done and responded to
+	xhr.onload = () => { 
+		if (xhr.readyState === XMLHttpRequest.DONE) { 
+			successStatus(successMessage);
+			// Finished request, unlock simultaneity
+			unlockSimul();
+		}
+	};
+
+	// Fire off web request
+	xhr.send(payload)
+
+}
+
 // Where the magic happens
 document.addEventListener('keyup', function(event) { 
 	if (USER == "") { 
@@ -177,13 +210,11 @@ document.addEventListener('keyup', function(event) {
 			warnStatus("Cannot process, simultaneity in effect!");
 			return;
 		}
+
 		let USERCLICK = Date.now();
-		const xhr = new XMLHttpRequest(); // Used to fire off web request
 		switch (event.code) { // event.code is the key that was pressed
 			// Resign WA
 			case 'KeyE': 
-				lockSimul();
-
 				if (document.location.href.includes("page=join_WA")) { 
 					updStatus("Joining the World Assembly");
 
@@ -196,47 +227,21 @@ document.addEventListener('keyup', function(event) {
 					// Copy to clipboard
 					navigator.clipboard.writeText(`https://www.nationstates.net/nation=${nation}`); 
 
-
-					// TODO: Surely it's easier to just click the button
-					// Then again, that requires debugging onclick
-					xhr.open("POST", `/cgi-bin/join_un.cgi/template-overall=none/userclick=${USERCLICK}`);
-					xhr.setRequestHeader("User-Agent", USER_AGENT);
-					// Deliver URL-Encoded form data, like NS site normally does
-					xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-					xhr.onload = () => { 
-						if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
-							successStatus("Joined WA successfully");
-							// Finished request, unlock simultaneity
-							unlockSimul();
-						}
-					};
-
-					// Send request to join WA
-					xhr.send(`nation=${nation}&appid=${APPID}`);
+					makeRequest(USERCLICK, "/cgi-bin/join_un.cgi", `nation=${nation}&appid=${APPID}`, `Joined the World Assembly with ${nation}`);
 
 				} else { 
-
 					updStatus("Resigning from the World Assembly");
 					if (!chk) { 
 						failStatus("Could not fetch chk value");
 						// document.location.href = "https://www.nationstates.net/page=un/template-overall=none";
 					}
 
-					// Set userclick and useragent
-					xhr.open("POST", `/page=UN_status/template-overall=none/userclick=${USERCLICK}`);
-					xhr.setRequestHeader("User-Agent", USER_AGENT);
-					// Deliver URL-Encoded form data, like NS site normally does
-					xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-					xhr.onload = () => { 
-						if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
-							successStatus("Resigned from WA successfully");
-							// Finished request, unlock simultaneity
-							unlockSimul();
-						}
-					};
-
-					// Send request to leave WA
-					xhr.send(`action=leave_UN&chk=${chk}&submit=1`);
+					makeRequest(
+						USERCLICK, 
+						"/page=UN_status", 
+						`action=leave_UN&chk=${chk}&submit=1`, 
+						"Resigned from the World Assembly"
+					);
 				}
 
 				break;
@@ -262,26 +267,17 @@ document.addEventListener('keyup', function(event) {
 					failStatus("Cannot detect current region");
 					break;
 				}
-				lockSimul();
 				updStatus(`ROing in ${region}`);
-				// Set userclick and useragent
-				xhr.open("POST", `/region=${region}/template-overall=none/userclick=${USERCLICK}`);
-				xhr.setRequestHeader("User-Agent", USER_AGENT);
-				// Deliver URL-Encoded form data, like NS site normally does
-				xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-				xhr.onload = () => { 
-					if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
-						successStatus(`RO'd in ${region} successfully`);
-						// Finished request, unlock simultaneity
-						unlockSimul();
-					}
-				};
-
+				
 				let RO_name = rotitle;
 				// Tagging RO options
-				xhr.send(`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`);
+				makeRequest(
+					USERCLICK, 
+					`region=${region}`, 
+					`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
+					`RO'd in ${region} successfully`
+				);
 
-			// Move to region
 			case 'KeyF':
 				if (document.location.href.includes("region=")) { 
 					if (!region) {
@@ -290,23 +286,13 @@ document.addEventListener('keyup', function(event) {
 					}
 
 					updStatus(`Moving to region ${region}`);
-					lockSimul();
 
-					// Set userclick and useragent
-					xhr.open("POST", `/page=change_region/template-overall=none/userclick=${USERCLICK}`);
-					xhr.setRequestHeader("User-Agent", USER_AGENT);
-					// Deliver URL-Encoded form data, like NS site normally does
-					xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-					xhr.onload = () => { 
-						if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
-							// TODO: Scrape values like chk, localid, WA membership status, etc. where relevant
-							successStatus(`Moved to ${region} successfully`);
-							// Finished request, unlock simultaneity
-							unlockSimul();
-						}
-					};
-
-					xhr.send(`localid=${localid}&region_name=${region}&move_region=1`);
+					makeRequest(
+						USERCLICK,
+						"/page=change_region",
+						`localid=${localid}&region_name=${region}&move_region=1`, 
+						`Moved to ${region} successfully`
+					);
 
 					break;
 				} else { 
