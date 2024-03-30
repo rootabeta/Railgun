@@ -6,6 +6,7 @@ let rotitle = localStorage.getItem("rgrotitle") || "Railgun";
 let suctitle = localStorage.getItem("rgsuctitle") || "Task Failed Successorly";
 let govtitle = localStorage.getItem("rggovtitle") || "Maintain A";
 let JUMP_POINT = localStorage.getItem("rgjumppoint") || "suspicious";
+let MAGAZINE = JSON.parse(localStorage.getItem("rgmagazine")) || []
 
 // Identification strings
 let USER_AGENT = `Railgun/${VERSION} (By: Volstrostia; usedBy: ${USER})`;
@@ -71,7 +72,7 @@ statusBox.style.backgroundColor = "grey";
 
 // Center contents of status popup
 let makeCenter = document.createElement("center");
-let statusText = document.createElement("h3"); 
+let statusText = document.createElement("pre"); 
 
 function updStatus(message) { 
 	statusBox.style.backgroundColor = "grey";
@@ -98,9 +99,9 @@ function successStatus(message) {
 }
 
 if (USER != "") { 
-	updStatus(`Railgun ${VERSION} loaded (user: ${USER}), awaiting command`);
+	updStatus(`Railgun ${VERSION} loaded\nCurrent user: ${USER}\nApplications available: ${MAGAZINE.length}\nAwaiting command`);
 } else { 
-	failStatus("User could not be pulled from settings - setup is required");
+	failStatus("User could not be pulled from settings.\nAdditional setup is likely required");
 	// chrome.runtime.openOptionsPage();
 }
 makeCenter.appendChild(statusText);
@@ -213,13 +214,55 @@ document.addEventListener('keyup', function(event) {
 
 		let USERCLICK = Date.now();
 		switch (event.code) { // event.code is the key that was pressed
-			// Resign WA
-			case 'KeyE': 
-				if (document.location.href.includes("page=join_WA")) { 
-					updStatus("Joining the World Assembly");
+			// Clear magazine
+			case 'KeyM':
+				// let MAGAZINE = JSON.parse(localStorage.getItem("rgmagazine")) || []
+				if (window.confirm("Are you sure you want to clear your magazine?")) { 
+					MAGAZINE = [];
+					localStorage.setItem("rgmagazine", JSON.stringify(MAGAZINE));
+					successStatus("Cleared magazine");
+				}
+				break;
 
-					let APPID = document.getElementsByName("appid")[0].value;
-					let nation = document.getElementsByClassName("nlink")[0].href.split("=")[1];
+			// Add application to magazine
+			case 'KeyL':
+				if (!document.location.href.includes("join_WA")) {
+					failStatus("Cannot load applications if not on application page");
+				} else { 
+					let MAGAZINE = JSON.parse(localStorage.getItem("rgmagazine"));
+
+					let appid = document.getElementsByName("appid")[0].value;
+					let appnation = document.getElementsByClassName("button primary icon approve big")[0].form.children.nation.value;
+					let foundApplication = false;
+					for (i=0; i<MAGAZINE.length;i++) { 
+						if (MAGAZINE[i]["appid"] == appid) { 
+							failStatus("Application already in magazine");
+							foundApplication = true;
+							break;
+						}
+					}
+
+					if (!foundApplication) { 
+						MAGAZINE.push({"nation": appnation, "appid": appid});
+						localStorage.setItem("rgmagazine", JSON.stringify(MAGAZINE));
+						successStatus(`Added ${appnation} to magazine\nCurrent magazine length: ${MAGAZINE.length}`);
+					}
+				}
+				break;
+
+			// Join WA
+			case 'KeyR': 
+				if (MAGAZINE.length == 0) { 
+					failStatus("No applications left in magazine!");
+				} else { 
+					// Remove application from stack in memory and flash updated list to system
+					// Use SHIFT for FIFO feeding - just load tabs in the order desired
+					let next_up = MAGAZINE.shift()
+					localStorage.setItem("rgmagazine", JSON.stringify(MAGAZINE));
+
+					let nation = next_up["nation"]
+					let appid = next_up["appid"]
+					updStatus(`Joining the World Assembly with ${nation}`);
 
 					localStorage.setItem("rgnation", nation); // Current nation
 					localStorage.setItem("rgchk", ""); // Clear out auth values
@@ -227,22 +270,24 @@ document.addEventListener('keyup', function(event) {
 					// Copy to clipboard
 					navigator.clipboard.writeText(`https://www.nationstates.net/nation=${nation}`); 
 
-					makeRequest(USERCLICK, "/cgi-bin/join_un.cgi", `nation=${nation}&appid=${APPID}`, `Joined the World Assembly with ${nation}`);
-
-				} else { 
-					updStatus("Resigning from the World Assembly");
-					if (!chk) { 
-						failStatus("Could not fetch chk value");
-						// document.location.href = "https://www.nationstates.net/page=un/template-overall=none";
-					}
-
-					makeRequest(
-						USERCLICK, 
-						"/page=UN_status", 
-						`action=leave_UN&chk=${chk}&submit=1`, 
-						"Resigned from the World Assembly"
-					);
+					makeRequest(USERCLICK, "/cgi-bin/join_un.cgi", `nation=${nation}&appid=${appid}`, `Joined the World Assembly with ${nation}`);
 				}
+				break;
+
+			// Resign WA
+			case 'KeyE': 
+				updStatus("Resigning from the World Assembly");
+				if (!chk) { 
+					failStatus("Could not fetch chk value");
+					// document.location.href = "https://www.nationstates.net/page=un/template-overall=none";
+				}
+
+				makeRequest(
+					USERCLICK, 
+					"/page=UN_status", 
+					`action=leave_UN&chk=${chk}&submit=1`, 
+					"Resigned from the World Assembly"
+				);
 
 				break;
 
@@ -308,6 +353,7 @@ document.addEventListener('keyup', function(event) {
 					let targetnation = document.getElementsByClassName("endorse")[0].form.children.nation.value ;
 					makeRequest(USERCLICK, "/cgi-bin/endorse.cgi", `nation=${targetnation}&localid=${localid}&action=endorse`, `Endorsed ${targetnation}`);
 				}
+				break;
 		}
 	}
 });
