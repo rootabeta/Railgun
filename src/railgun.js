@@ -98,7 +98,7 @@ function successStatus(message) {
 	statusText.textContent = message;
 }
 
-if (USER != "") { 
+if (USER != "" || localStorage.getItem("rguser") == null) { 
 	updStatus(`Railgun ${VERSION} loaded\nCurrent user: ${USER}\nApplications available: ${MAGAZINE.length}\nAwaiting command`);
 } else { 
 	failStatus("User could not be pulled from settings.\nAdditional setup is likely required");
