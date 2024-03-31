@@ -17,8 +17,12 @@ function loadSettings(settings) {
 	//This means we can discard whatever we had, and update to the new stuff
 	//This way, we can change things and have it reflected on the next refresh
 	if (settings.user) { 
-		USER = settings.user;
-		localStorage.setItem("rguser", settings.user);
+		if (settings.user != "null") { 
+			USER = settings.user;
+			localStorage.setItem("rguser", settings.user);
+		} else { 
+			USER = ""; // Set to empty string to blow up future parsing
+		}
 	}
 
 	if (settings.ro) { 
@@ -98,12 +102,13 @@ function successStatus(message) {
 	statusText.textContent = message;
 }
 
-if (USER != "" && !localStorage.getItem("rguser") == null) { 
+if (USER && USER != "" && USER != "null") {
 	updStatus(`Railgun ${VERSION} loaded\nCurrent user: ${USER}\nApplications available: ${MAGAZINE.length}\nAwaiting command`);
 } else { 
 	failStatus("User could not be pulled from settings.\nAdditional setup is likely required");
 	// chrome.runtime.openOptionsPage();
 }
+
 makeCenter.appendChild(statusText);
 statusBox.appendChild(makeCenter);
 
