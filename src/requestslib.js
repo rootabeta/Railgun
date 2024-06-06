@@ -36,6 +36,12 @@ function unlockSimul() {
 
 // Convenient wrapper around POST requests that attaches user agent, userclick, and handles simultaneity
 function makeRequest(userclick, url, payload, handlerCallback) { 
+	function failed_response(error) {
+		failStatus("Request timed out");
+		unlockSimul();
+	}
+
+
 	if (window.simulLocked) { 
 		failStatus("Tried to run request during simultaneity");
 		return;
@@ -54,6 +60,31 @@ function makeRequest(userclick, url, payload, handlerCallback) {
                 return;
         }
 
+	fetch(`${url}/template-overall=none/?script=${USER_URL}&userclick=${userclick}`, { 
+		method: "POST",
+		redirect: "manual", // We will ignore redirects :3
+		signal: AbortSignal.timeout(30_000), // A signal to timeout after 30s if no response has come back
+		headers: { 
+			"User-Agent": USER_AGENT, // Set user agent for identification
+			"Content-Type": "application/x-www-form-urlencoded"
+		},
+		body: payload,
+	})
+	.then((response) => response.text())
+	.then((text) => { 
+		unlockSimul(); // Now that we have a response, unlock simultaneity
+
+		// Parse the response into an HTML document - easier to work with
+		var parser = new DOMParser();
+		var responseDocument = parser.parseFromString(text, "text/html");
+
+		// Pass the resulting document to the callback for it to handle
+		handlerCallback(responseDocument);
+
+	});
+
+	// Old XHR code, no good! Keeps doing redirects and crap we don't want :c
+	/*
         const xhr = new XMLHttpRequest();
 	xhr.timeout = 30_000; // 30 second timeout for requests
 	xhr.responseType = "document"; // Expect an HTML document response
@@ -68,8 +99,6 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 	// After 30 seconds, it is safe to assume no response will be coming from the server
 	// https://forum.nationstates.net/viewtopic.php?p=40650385&sid=2dcae866b436082e3e30427e0dce4cc0#p40650385
 	xhr.ontimeout = (e) => { 
-		failStatus("Request timed out");
-		unlockSimul(); 
 	}
 
         // Only allow unlock once the request is done and responded to
@@ -90,4 +119,5 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 
         // Fire off web request
         xhr.send(payload)
+	*/
 }
