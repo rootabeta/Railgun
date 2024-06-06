@@ -1,7 +1,7 @@
 { 
 	"manifest_version": 3,
 	"name": "Railgun",
-	"version": "0.0.10",
+	"version": "0.0.11",
 	"description": "A single-tap raiding keybinder to rival the likes of Koru",
 	"icons": { 
 		"16": "icons/icon16.png",
@@ -14,6 +14,11 @@
 			"https://*.nationstates.net/*"
 		],
 		"js": [ 
+			"src/railgunlib.js",
+			"src/loadsettings.js",
+			"src/handlers.js",
+			"src/requestslib.js",
+			"src/statusbox.js",
 			"src/railgun.js"
 		]
 	}],
