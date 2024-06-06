@@ -152,6 +152,13 @@ function makeRequest(userclick, url, payload, successMessage) {
 	console.debug(USER_AGENT);
 	console.debug(USER_URL);
 
+	// No user agent! Refuse to create/send the request.
+	if (!(USER && USER != "" && USER != "null") || !(USER_AGENT && USER_AGENT != "" && USER_AGENT != "null") {
+		lockSimul();
+		failStatus("Cannot make web requests until user agent is set!");
+		return;
+	}
+
 	// Lock simultaneity items
 	lockSimul()
 

@@ -1,13 +1,14 @@
 { 
 	"manifest_version": 3,
 	"name": "Railgun",
-	"version": "0.0.8",
+	"version": "0.0.9",
 	"description": "A single-tap raiding keybinder to rival the likes of Koru",
 	"icons": { 
 		"16": "icons/icon16.png",
 		"48": "icons/icon48.png",
 		"128": "icons/icon128.png"
 	},
+
 	"content_scripts": [{
 		"matches": [
 			"https://*.nationstates.net/*"
@@ -17,16 +18,25 @@
 			"src/simultaneity.js"
 		]
 	}],
+
 	"options_ui": {
 		"page": "src/settings.html",
 		"open_in_tab": true
 	},
 
-	"permissions":["storage"],
+	"host_permissions":[
+		"https://*.nationstates.net/*"	
+	], 
+
+	"permissions":[
+		"cookies",
+		"storage"
+	],
 
 	"browser_specific_settings":{
 		"gecko":{
-			"id":"railgun@alexfromnationstates"
+			"id":"railgun@alexfromnationstates",
+			"strict_min_version": "109.0"
 		}
 	}
 }
