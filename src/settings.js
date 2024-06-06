@@ -37,7 +37,7 @@ function restoreOptions() {
 async function checkPermissions() { 
         // Check if we have permissions for NS
         let hostPerms = {origins: ["https://*.nationstates.net/*"]};
-        let getContains = await browser.permissions.contains(hostPerms);
+        let getContains = await chrome.permissions.contains(hostPerms);
         return getContains;
 }
 
