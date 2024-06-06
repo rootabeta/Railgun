@@ -41,7 +41,7 @@ function joinCallback(responseDocument) {
 
 		// Copy to clipboard
 		navigator.clipboard.writeText(`https://www.nationstates.net/nation=${appnation}`); 
-	} else if (responseDocument.body.textContent.includes("un_email_in_use") {
+	} else if (responseDocument.body.textContent.includes("un_email_in_use")) {
 		failStatus("Already in WA");
 	} else { 
 		failStatus("Failed to join WA");
