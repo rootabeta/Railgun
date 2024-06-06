@@ -106,6 +106,7 @@ if (USER && USER != "" && USER != "null") {
 	updStatus(`Railgun ${VERSION} loaded\nCurrent user: ${USER}\nApplications available: ${MAGAZINE.length}\nAwaiting command`);
 } else { 
 	failStatus("User could not be pulled from settings.\nAdditional setup is likely required");
+	lockSimul(); // Prevent user from doing anything until error is resolved
 	// chrome.runtime.openOptionsPage();
 }
 
@@ -113,31 +114,6 @@ makeCenter.appendChild(statusText);
 statusBox.appendChild(makeCenter);
 
 document.body.appendChild(statusBox);
-
-// Functions to lock or unlock elements for simultaneity
-function lockSimul() { 
-	window.simulLocked = true;
-	let elements = document.querySelectorAll('button[type=submit]');
-	for (i=0;i<elements.length;i++) { 
-		let element = elements[i];
-		// Set simultaneity flag
-		element.setAttribute("disabledforsimultaneity", true);
-		// Disable element
-		element.setAttribute("disabled", true);
-	}
-}
-
-function unlockSimul() { 
-	window.simulLocked = false;
-	let elements = document.querySelectorAll('[disabledforsimultaneity]');
-	for (i=0;i<elements.length;i++) { 
-		let element = elements[i];
-		// Remove simultaneity flag
-		element.removeAttribute("disabledforsimultaneity");
-		// Re-enable element
-		element.removeAttribute("disabled");
-	}
-}
 
 // Force submit buttons to enforce simultaneity once clicked
 // This submits the parent form, but only if the button is clicked
@@ -328,6 +304,8 @@ document.addEventListener('keyup', function(event) {
 					`RO'd in ${region} successfully`
 				);
 
+				break;
+
 			case 'KeyF':
 				if (document.location.href.includes("region=")) { 
 					if (!region) {
@@ -345,9 +323,11 @@ document.addEventListener('keyup', function(event) {
 					);
 
 					break;
+
 				} else { 
 					warnStatus("Not looking at region");
 				}
+
 				break;
 
 			// Endorse a nation
@@ -358,6 +338,7 @@ document.addEventListener('keyup', function(event) {
 					let targetnation = document.getElementsByClassName("endorse")[0].form.children.nation.value ;
 					makeRequest(USERCLICK, "/cgi-bin/endorse.cgi", `nation=${targetnation}&localid=${localid}&action=endorse`, `Endorsed ${targetnation}`);
 				}
+
 				break;
 		}
 	}
