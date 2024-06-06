@@ -12,6 +12,32 @@ let MAGAZINE = JSON.parse(localStorage.getItem("rgmagazine")) || []
 let USER_AGENT = `Railgun/${VERSION} (By: Volstrostia; usedBy: ${USER})`;
 let USER_URL = `Railgun_${VERSION}_by_Volstrostia_usedBy_${USER}`; // For chrome
 
+// Functions to lock or unlock elements for simultaneity
+function lockSimul() { 
+        console.debug(`You are ${USER}`);
+        window.simulLocked = true;
+        let elements = document.querySelectorAll('button[type=submit]');
+        for (i=0;i<elements.length;i++) { 
+                let element = elements[i];
+                // Set simultaneity flag
+                element.setAttribute("disabledforsimultaneity", true);
+                // Disable element
+                element.setAttribute("disabled", true);
+        }
+}
+
+function unlockSimul() { 
+        window.simulLocked = false;
+        let elements = document.querySelectorAll('[disabledforsimultaneity]');
+        for (i=0;i<elements.length;i++) { 
+                let element = elements[i];
+                // Remove simultaneity flag
+                element.removeAttribute("disabledforsimultaneity");
+                // Re-enable element
+                element.removeAttribute("disabled");
+        }
+}
+
 function loadSettings(settings) { 
 	//Whenever this function fires, we know that we have new data from settings
 	//This means we can discard whatever we had, and update to the new stuff
@@ -106,7 +132,7 @@ if (USER && USER != "" && USER != "null") {
 	updStatus(`Railgun ${VERSION} loaded\nCurrent user: ${USER}\nApplications available: ${MAGAZINE.length}\nAwaiting command`);
 } else { 
 	failStatus("User could not be pulled from settings.\nAdditional setup is likely required");
-	lockSimul(); // Prevent user from doing anything until error is resolved
+	lockSimul();
 	// chrome.runtime.openOptionsPage();
 }
 
@@ -153,7 +179,7 @@ function makeRequest(userclick, url, payload, successMessage) {
 	console.debug(USER_URL);
 
 	// No user agent! Refuse to create/send the request.
-	if (!(USER && USER != "" && USER != "null") || !(USER_AGENT && USER_AGENT != "" && USER_AGENT != "null") {
+	if (!(USER && USER != "" && USER != "null") || !(USER_AGENT && USER_AGENT != "" && USER_AGENT != "null")) {
 		lockSimul();
 		failStatus("Cannot make web requests until user agent is set!");
 		return;
@@ -189,9 +215,9 @@ function makeRequest(userclick, url, payload, successMessage) {
 document.addEventListener('keyup', function(event) { 
 	if (USER == "") { 
 		failStatus("Cannot perform activity without user ID. Edit settings and refresh.");
+		lockSimul();
 		return;
-	}
-	if (event.shiftKey || event.ctrlKey || event.altKey || document.activeElement.tagName == 'INPUT' || document.activeElement.tagName == 'TEXTAREA') { // locks you out of the script while you're holding down a modifier key or typing in an input
+	} else if (event.shiftKey || event.ctrlKey || event.altKey || document.activeElement.tagName == 'INPUT' || document.activeElement.tagName == 'TEXTAREA') { // locks you out of the script while you're holding down a modifier key or typing in an input
 		return;
 	} else {
 		// Extra safeguard - if simultaneity in effect, drop any keybinds

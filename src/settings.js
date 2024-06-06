@@ -46,11 +46,34 @@ function requestPermissions(result) {
 		console.log("We have host permissions for nationstates");
 	} else { 
 		console.log("Missing host permissions");
-		alert("Missing host permissions. Please enable them in the extension settings.");
+		alert("Missing host permissions. Please click the button to enable host permissions.");
 
 		// Disable button if missing host permission - we can't use railgun without it
 		document.getElementsByTagName("button")[0].disabled = true;
+
+		// Show permission enable request
+		document.getElementById("permissionEnable").hidden = false;
+
 	}
+}
+
+function setPermissions() { 
+	function failedSet(error) { 
+		console.error(error);
+		alert("Could not set host permission. Please go to the extensions menu in your browser and enable host permissions for nationstates.net");
+	}
+
+	function testSet(result) { 
+		if (result) { 
+			alert("Permissions enabled successfully");
+			location.reload();
+		} else { 
+			alert("Could not set host permission. Please go to the extensions menu in your browser and enable host permissions for nationstates.net");
+		}
+	}
+
+	let hostPerms = {origins: ["https://*.nationstates.net/*"]};
+	let requesting = chrome.permissions.request(hostPerms).then(testSet, failedSet);
 }
 
 function permissionError(error) { 
@@ -58,7 +81,10 @@ function permissionError(error) {
 	console.error(error);
 }
 
+// Hide permissions button
+document.getElementById("permissionEnable").hidden = true;
 checkPermissions().then(requestPermissions, permissionError);
 
 document.addEventListener("DOMContentLoaded", restoreOptions);
 document.querySelector("form").addEventListener("submit", saveOptions);
+document.getElementById("permissionEnable").addEventListener("click", setPermissions);
