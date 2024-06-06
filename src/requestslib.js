@@ -66,7 +66,8 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 		signal: AbortSignal.timeout(30_000), // A signal to timeout after 30s if no response has come back
 		headers: { 
 			"User-Agent": USER_AGENT, // Set user agent for identification
-			"Content-Type": "application/x-www-form-urlencoded"
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Accept": "text/html"
 		},
 		body: payload,
 	})

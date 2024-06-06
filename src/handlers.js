@@ -35,7 +35,6 @@ function joinCallback(responseDocument) {
 		successStatus(`Joined WA with ${appnation}`);
 		nation = appnation;
 		localStorage.setItem("rgnation", appnation); // Current nation
-		document.cookie = responseDocument.cookie; // It probably handed us a new session cookie. We can use that to authenticate.
 		localStorage.setItem("rgchk", responseDocument.getElementsByName("chk")[0].value); 
 		localStorage.setItem("rglocalid", responseDocument.getElementsByName("localid")[0].value);
 
