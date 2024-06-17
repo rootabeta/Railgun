@@ -233,6 +233,15 @@ document.addEventListener('keyup', function(event) {
 				lockSimul();
 				document.location.href = `https://www.nationstates.net/region=${region}`;
 				break;
+
+			// Enable template=none
+			case 'KeyT':
+				if (!document.location.href.includes("template-overall=none")) { 
+					updStatus(`Enabling template-overall=none`);
+					lockSimul();
+					document.location.href = `${document.location.href}/template-overall=none`;
+				}
+				break;
 		}
 	}
 });
