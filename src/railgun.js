@@ -226,6 +226,13 @@ document.addEventListener('keyup', function(event) {
 				}
 
 				break;
+
+			// Go to current region
+			case 'KeyZ':
+				updStatus(`Viewing ${region}`);
+				lockSimul();
+				document.location.href = `https://www.nationstates.net/region=${region}`;
+				break;
 		}
 	}
 });
