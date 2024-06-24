@@ -25,7 +25,6 @@ function ROCallback(responseDocument) {
 		return true;
 	} else { 
 		failStatus(`Could not RO in ${region}`);
-		return true; // TESTING OVERRIDE - REMOVE BEFORE RELEASE
 		return false;
 	}
 }
