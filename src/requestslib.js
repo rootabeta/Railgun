@@ -34,8 +34,105 @@ function unlockSimul() {
         }
 }
 
+function buildCache(current_region) { 
+	console.log(`Building cache for ${current_region} with ${USER_AGENT}`);
+
+	var headers = {};
+	fetch(`https://www.nationstates.net/cgi-bin/api.cgi?region=${current_region}&q=officers`, {
+		headers: { 
+			"User-Agent": USER_AGENT,
+		},
+	}).then((response) => {
+		headers = response.headers;
+		return response.text()
+	}).then((body) => { 
+		var parser = new DOMParser();
+
+		var responseDocument = parser.parseFromString(body, "text/xml");
+		let officers = responseDocument.querySelector("OFFICERS").children;
+
+		// Found our own nation as an RO with PACE perms
+		var found_self = false;
+		var parsed_officers = [];
+		for (var i=0; i<officers.length; i++) { 
+			let officer = officers[i];
+
+			let officer_nation = officer.querySelector("NATION").textContent;
+			let officer_authority = officer.querySelector("AUTHORITY").textContent;
+			let officer_office = officer.querySelector("OFFICE").textContent;
+			let officer_by = officer.querySelector("BY").textContent;
+			let officer_permissions = {
+				"successor": officer_authority.includes("S"),
+				"border_control": officer_authority.includes("B"),
+				"appearance": officer_authority.includes("A"),
+				"communications": officer_authority.includes("C"),
+				"embassies": officer_authority.includes("E"),
+				"polls": officer_authority.includes("P"),
+				"executive": officer_authority.includes("X"), // I hope to god this is never true
+			};
+
+			// Should we dismiss/rename/etc?
+			var should_tamper = true;
+			
+			// This is us! We are an RO here already!
+			if (officer_nation == nation) { 
+				if (
+					officer_permissions["appearance"] &&
+					officer_permissions["communications"] && 
+					officer_permissions["embassies"] &&
+					officer_permissions["polls"] 
+				) 
+				{
+					found_self = true;
+					should_tamper = false;
+				}
+			}
+
+			// We have already tampered with this particular nation
+			if (officer_by == nation) { 
+				should_tamper = false;
+			}
+
+			let parsed_officer = {
+				"nation": officer_nation,
+				"office": officer_office,
+				"permissions": officer_permissions,
+				"tamper": should_tamper,
+			}
+
+			// Add the officer item to the list
+			// We actually only care about the ones we should tamper with
+			// This way, we can just pop them all off the list
+			if (parsed_officer["tamper"]) { 
+				parsed_officers.push(parsed_officer);
+			}
+		}
+
+		// We store if we are out of requests, and when the bucket will reset
+		// This way, if our cache is empty, we can check if we have requests left
+		// If we don't, we know how long to wait for.
+		let cache = {
+			"region_name": current_region,
+			"bucket_empty": (headers.get("ratelimit-remaining") == "0"),
+			"bucket_reset": (Date.now() + (parseInt(headers.get("ratelimit-reset")) * 1000)),
+			"already_ro": found_self,
+			"officers": parsed_officers,
+			"total_officers": officers.length,
+		};
+
+		console.log("Built cache successfully");
+		console.log(cache);
+	
+		localStorage.setItem("rgregioncache", JSON.stringify(cache));
+	});
+}
+
 // Convenient wrapper around POST requests that attaches user agent, userclick, and handles simultaneity
-function makeRequest(userclick, url, payload, handlerCallback) { 
+function makeRequest(url, payload, handlerCallback) { 
+	// Exact timestamp the request was invoked by the user
+	// We go here immediately after agreeing to launch a request
+	let USERCLICK = Date.now();
+
 	function failed_response(error) {
 		failStatus("Request timed out");
 		unlockSimul();
@@ -61,8 +158,7 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 	console.debug(USER_AGENT);
 	console.debug(USER_URL);
 
-
-	fetch(`${url}/template-overall=none/?script=${USER_URL}&userclick=${userclick}`, { 
+	fetch(`${url}/template-overall=none/?script=${USER_URL}&userclick=${USERCLICK}`, { 
 		method: "POST",
 		redirect: "follow", // https://forum.nationstates.net/viewtopic.php?p=41718911#p41718911
 		signal: AbortSignal.timeout(30_000), // A signal to timeout after 30s if no response has come back
