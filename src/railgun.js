@@ -91,7 +91,9 @@ if (USER && USER != "" && USER != "null") {
 	lockSimul();
 }
 
-// Check railgun region cache to check our most recently cached region
+// Return codes that the handler callbacks can set
+// -255 is no code received/still processing
+var return_code = -255;
 
 // Keyboard event listener
 document.addEventListener('keyup', function(event) { 
@@ -107,7 +109,8 @@ document.addEventListener('keyup', function(event) {
 			warnStatus("Cannot process, simultaneity in effect!");
 			return;
 		}
-
+		
+		window.rgstatus_code = -255;
 		switch (event.code) { // event.code is the key that was pressed
 			// Clear magazine
 			case 'KeyM':
@@ -219,14 +222,82 @@ document.addEventListener('keyup', function(event) {
 				// (also if there's 12 successors then like, well, get fucked ig)
 
 				updStatus(`ROing in ${region}`);
-				
-				let RO_name = rotitle;
-				// Tagging RO options
-				makeRequest(
-					`region=${region}`, 
-					`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
-					ROCallback
-				);
+
+				var region_cache = localStorage.getItem("rgregioncache");
+				if (region_cache) { 
+					region_cache = JSON.parse(region_cache);
+
+					// Cache invalid
+					if (region_cache["region_name"] != region) { 
+						// Cached region does not match current region
+						warnStatus("ERROR: REGION CACHE INVALIDATED\nACTIVATING EMERGENCY SELF-RO");
+
+						let RO_name = rotitle;
+						// Tagging RO options
+						makeRequest(
+							`region=${region}`, 
+							`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
+							ROCallback
+						);
+
+					} else { 
+						// This is where the fun begins - smart dismissal
+						// 1) Determine course of action
+						// 2) Execute it
+						// 3) Update cache
+
+						// Not already an RO, and no room for new RO - we need to dismiss
+						if (!region_cache["already_ro"] && region_cache["total_officers"] >= 12) { 
+							// TODO: Select an RO that does NOT have successor permissions, and dismiss
+							// If there is none, then ig we're fucked - alert the user and move on.
+							// Otherwise, dismiss from officers and set total_officers = 0
+							warnStatus("Too many officers, dismissing one");
+						} else if (region_cache["already_ro"] && region_cache["officers"].length == 0) { 
+							// No more officers to deface, alert user to inability to continue
+							failStatus("No more officers to dismiss");
+						} else if (!region_cache["already_ro"]) { 
+							// RO self
+							updStatus(`ROing self in ${region}`);
+
+							let RO_name = rotitle;
+							// Tagging RO options
+							makeRequest(
+								`region=${region}`, 
+								`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
+								ROCallback
+							).then((RO_success) => {
+								// Check to see if RO succeeded, and update cache only if so
+								console.log(RO_success);
+								if (RO_success) { 
+									console.log("Got response back - win!");
+									region_cache["already_ro"] = true;
+									localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+								} else { 
+									console.error("Failed to RO");
+								}
+							});
+						} else { 
+							// Dismiss officers! Woo!
+							failStatus("TODO");
+							// TODO - dismiss officers until none remain
+						}
+						
+					}
+
+				// Cache missing
+				} else { 
+					// No cache found - emergency protocol, try to RO
+					warnStatus("ERROR: COULD NOT ACQUIRE REGION CACHE\nACTIVATING EMERGENCY SELF-RO");
+
+					let RO_name = rotitle;
+					// Tagging RO options
+					makeRequest(
+						`region=${region}`, 
+						`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
+						ROCallback
+					);
+
+				}
 
 				break;
 

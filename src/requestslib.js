@@ -132,6 +132,7 @@ function makeRequest(url, payload, handlerCallback) {
 	// Exact timestamp the request was invoked by the user
 	// We go here immediately after agreeing to launch a request
 	let USERCLICK = Date.now();
+	var success = false;
 
 	function failed_response(error) {
 		failStatus("Request timed out");
@@ -158,7 +159,7 @@ function makeRequest(url, payload, handlerCallback) {
 	console.debug(USER_AGENT);
 	console.debug(USER_URL);
 
-	fetch(`${url}/template-overall=none/?script=${USER_URL}&userclick=${USERCLICK}`, { 
+	return fetch(`${url}/template-overall=none/?script=${USER_URL}&userclick=${USERCLICK}`, { 
 		method: "POST",
 		redirect: "follow", // https://forum.nationstates.net/viewtopic.php?p=41718911#p41718911
 		signal: AbortSignal.timeout(30_000), // A signal to timeout after 30s if no response has come back
@@ -186,44 +187,6 @@ function makeRequest(url, payload, handlerCallback) {
 		}
 
 		// Pass the resulting document to the callback for it to handle
-		handlerCallback(responseDocument);
-
+		return handlerCallback(responseDocument);
 	});
-
-	/*
-        const xhr = new XMLHttpRequest();
-	xhr.timeout = 30_000; // 30 second timeout for requests
-	xhr.responseType = "document"; // Expect an HTML document response
-
-        // Attach userclick and user-agent to URL
-        xhr.open("POST", `${url}/template-overall=none/?script=${USER_URL}&userclick=${userclick}`);
-        xhr.setRequestHeader("User-Agent", USER_AGENT); // Additionally attach user-agent to request if possible
-
-        // Deliver URL-Encoded form data, like NS site normally does
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-
-	// After 30 seconds, it is safe to assume no response will be coming from the server
-	// https://forum.nationstates.net/viewtopic.php?p=40650385&sid=2dcae866b436082e3e30427e0dce4cc0#p40650385
-	xhr.ontimeout = (e) => { 
-	}
-
-        // Only allow unlock once the request is done and responded to
-        xhr.onload = () => { 
-                if (xhr.readyState === XMLHttpRequest.DONE) { 
-			// Let the user decide how to parse the response now that we have it
-			handlerCallback(xhr.responseXML);
-
-			// Shut down the web request after parsing, but before unlocking simul
-			// Just in case it gets any funny ideas about refreshing or something
-			xhr.abort();
-
-                        // Finished request, unlock simultaneity
-                        unlockSimul();
-
-                }
-        };
-
-        // Fire off web request
-        xhr.send(payload)
-	*/
 }
