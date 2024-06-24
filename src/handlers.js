@@ -28,19 +28,14 @@ function ROCallback(responseDocument) {
 }
 
 function joinCallback(responseDocument) { 
-	// We cannot rely on the welcome text, as this actually generates a redirect
-	// However, if it redirects to the welcome page, we're in business
-	if (responseDocument.body.textContent.includes("https://www.nationstates.net/page=un?welcome=1")) { 
+	if (responseDocument.body.textContent.includes("Welcome to the World Assembly, new member")) { 
 		let appnation = responseDocument.getElementsByClassName("bellink")[0].href.split("=")[1];
 		successStatus(`Joined WA with ${appnation}`);
-		nation = appnation;
 		localStorage.setItem("rgnation", appnation); // Current nation
-		localStorage.setItem("rgchk", responseDocument.getElementsByName("chk")[0].value); 
-		localStorage.setItem("rglocalid", responseDocument.getElementsByName("localid")[0].value);
 
-		// Copy to clipboard
+		// Copy to clipboard if switching succeeded
 		navigator.clipboard.writeText(`https://www.nationstates.net/nation=${appnation}`); 
-	} else if (responseDocument.body.textContent.includes("un_email_in_use")) {
+	} else if (responseDocument.body.textContent.includes("Another WA member nation is currently using the same email")) {
 		failStatus("Already in WA");
 	} else { 
 		failStatus("Failed to join WA");
@@ -55,7 +50,6 @@ function resignCallback(responseDocument) {
 	}
 }
 
-// TODO
 function endorseCallback(responseDocument) { 
 	// <form method="POST" action="/cgi-bin/endorse.cgi"><input type="hidden" name="nation" value="insula_navarra"><input type="hidden" name="localid" value="0lQjjI9Ogdl3X"><input type="hidden" name="action" value="unendorse"><p><button type="submit" class="endorse button icon wa danger">Withdraw Your Endorsement </button></form>
 	if (responseDocument.body.textContent.includes("Withdraw Your Endorsement")) { 

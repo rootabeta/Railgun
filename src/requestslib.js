@@ -41,7 +41,14 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 		unlockSimul();
 	}
 
+	// No user agent! Refuse to create/send the request.
+	if (!(USER && USER != "" && USER != "null")) {
+			failStatus("Cannot make web requests until user agent is set!");
+			return;
+	}
 
+	// If we are already in simul, refuse to honor the request
+	// Otherwise, engage simultaneity and prepare to go warp speed
 	if (window.simulLocked) { 
 		failStatus("Tried to run request during simultaneity");
 		return;
@@ -50,19 +57,14 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 		lockSimul()
 	}
 
-        // Debugging: make sure user identifiers are available and correct
-        console.debug(USER_AGENT);
-        console.debug(USER_URL);
+	// Debugging: make sure user identifiers are available and correct
+	console.debug(USER_AGENT);
+	console.debug(USER_URL);
 
-        // No user agent! Refuse to create/send the request.
-        if (!(USER && USER != "" && USER != "null")) {
-                failStatus("Cannot make web requests until user agent is set!");
-                return;
-        }
 
 	fetch(`${url}/template-overall=none/?script=${USER_URL}&userclick=${userclick}`, { 
 		method: "POST",
-		redirect: "manual", // We will ignore redirects :3
+		redirect: "follow", // https://forum.nationstates.net/viewtopic.php?p=41718911#p41718911
 		signal: AbortSignal.timeout(30_000), // A signal to timeout after 30s if no response has come back
 		headers: { 
 			"User-Agent": USER_AGENT, // Set user agent for identification
@@ -79,12 +81,19 @@ function makeRequest(userclick, url, payload, handlerCallback) {
 		var parser = new DOMParser();
 		var responseDocument = parser.parseFromString(text, "text/html");
 
+		// Pull chk and localid from page in all cases, just in case we can get refreshed values
+		if (responseDocument.getElementsByName("chk").length > 0) { 
+			localStorage.setItem("rgchk", responseDocument.getElementsByName("chk")[0].value); 
+		}
+		if (responseDocument.getElementsByName("localid").length > 0) { 
+			localStorage.setItem("rglocalid", responseDocument.getElementsByName("localid")[0].value);
+		}
+
 		// Pass the resulting document to the callback for it to handle
 		handlerCallback(responseDocument);
 
 	});
 
-	// Old XHR code, no good! Keeps doing redirects and crap we don't want :c
 	/*
         const xhr = new XMLHttpRequest();
 	xhr.timeout = 30_000; // 30 second timeout for requests
