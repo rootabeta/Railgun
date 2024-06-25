@@ -8,6 +8,7 @@ let suctitle = localStorage.getItem("rgsuctitle") || "Task Failed Successorly";
 let govtitle = localStorage.getItem("rggovtitle") || "Maintain A";
 let JUMP_POINT = localStorage.getItem("rgjumppoint") || "suspicious";
 let MAGAZINE = JSON.parse(localStorage.getItem("rgmagazine")) || []
+let safety = JSON.parse(localStorage.getItem("rgsafety")) || false;
 
 // Load settings
 const getting = chrome.storage.sync.get();
@@ -114,8 +115,29 @@ document.addEventListener('keyup', function(event) {
 			warnStatus("Cannot process, simultaneity in effect!");
 			return;
 		}
+
+		// Any other key than I pressed while safety is engaged
+		if (safety && event.code != 'KeyI') { 
+			warnStatus("Safety is on - press I to disengage");
+			return;
+		}
 		
 		switch (event.code) { // event.code is the key that was pressed
+			// Interlock/Safety - refuse to process further keystrokes until it is lifted
+			case 'KeyI':
+				if (safety) { 
+					safety = false;
+					localStorage.setItem("rgsafety", false);
+					successStatus("Safety disengaged\nNormal operation permitted");
+				} else { 
+					safety = true;
+					localStorage.setItem("rgsafety", true);
+					warnStatus("Safety engaged\nPress I to resume normal operation");
+				}
+
+				break;
+
+			// Rebuild the region cache, regardless of last cache build time or region
 			case 'KeyC':
 				console.log("Force-rebuilding cache");
 				var current_region = region;
@@ -404,6 +426,7 @@ document.addEventListener('keyup', function(event) {
 
 				break;
 
+			// Move to region
 			case 'KeyF':
 				if (document.location.href.includes("region=")) { 
 					var targetRegion = document.location.href.split("region=")[1];

@@ -17,6 +17,7 @@ The current list of implemented keybinds is:
 - L - Load WA application into "magazine"
 - S - Endorse a nation
 - C - Manually refresh cached RO/banlist data
+- I - Engage/Disengage safety
 
 ## DISCLAIMER
 
