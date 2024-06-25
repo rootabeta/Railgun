@@ -61,8 +61,9 @@ if (document.location.href.includes("region=")) {
 	var region_cache = localStorage.getItem("rgregioncache");
 	if (region_cache) { 
 		region_cache = JSON.parse(region_cache);
-		// Different region than the last one
-		if (region_cache["region_name"] != current_region) { 
+
+		// Different region than the last one, or cache is more than 30 seconds old
+		if (region_cache["region_name"] != current_region || region_cache["cache_built"] <= Date.now() - 30_000) { 
 			if (region_cache["bucket_empty"]) { 
 				warnStatus("Out of API slots\nSpinning until bucket reset");
 				while (region_cache["bucket_reset"] > Date.now()) { 
@@ -81,7 +82,7 @@ if (document.location.href.includes("region=")) {
 		console.log(`Building cache for ${current_region}`);
 		buildCache(current_region);
 	}
-}
+} 
 
 // Ensure user values are present, and lock out if not
 if (USER && USER != "" && USER != "null") {
@@ -91,9 +92,13 @@ if (USER && USER != "" && USER != "null") {
 	lockSimul();
 }
 
-// Return codes that the handler callbacks can set
-// -255 is no code received/still processing
-var return_code = -255;
+// Check if we are banned from the region we're looking at
+if (document.location.href.includes("region=")) { 
+	let current_region = document.location.href.split("region=")[1].split("/")[0];
+	if (region_cache && region_cache["region_name"] == current_region && region_cache["banlist"].includes(nation)) { 
+		failStatus(`Warning: intel suggests ${nation} is banned from ${current_region}\nConsider switching to a different puppet\nYou have ${MAGAZINE.length} puppets remaining`);
+	}
+}
 
 // Keyboard event listener
 document.addEventListener('keyup', function(event) { 
@@ -110,8 +115,35 @@ document.addEventListener('keyup', function(event) {
 			return;
 		}
 		
-		window.rgstatus_code = -255;
 		switch (event.code) { // event.code is the key that was pressed
+			case 'KeyC':
+				console.log("Force-rebuilding cache");
+				var current_region = region;
+				if (window.location.href.includes("region=")) {
+					current_region = document.location.href.split("region=")[1].split("/")[0];
+				}
+
+				var region_cache = localStorage.getItem("rgregioncache");
+				if (region_cache) { 
+					region_cache = JSON.parse(region_cache);
+					// Check if we are out of API requests in this bucket, and refuse to make more if so
+					if (region_cache["bucket_empty"] && Date.now() <= region_cache["bucket_reset"]) { 
+						failStatus(`Out of API slots, try again in ${(Date.now() - region_cache["bucket_reset"] / 1000)} seconds`);
+					} else { 
+						console.log("Refreshing cache");
+						buildCache(current_region);
+						successStatus(`Cache rebuilt for ${current_region}`);
+						var region_cache = localStorage.getItem("rgregioncache");
+					}
+				} else { 
+					// No cache found
+					console.log(`Building cache for ${current_region}`);
+					buildCache(current_region);
+					successStatus("Cache built");
+				}
+				
+				break;
+
 			// Clear magazine
 			case 'KeyM':
 				if (window.confirm("Are you sure you want to clear your magazine?")) { 
@@ -207,20 +239,6 @@ document.addEventListener('keyup', function(event) {
 					break;
 				}
 
-				// TODO: check rgregioncache
-				// If it's not cached, then go to RO page to gather that info
-				// However, in almost all cases it SHOULD be cached already - I mean why wouldn't it
-				// So, in that case, check ROs
-				// If we are already in the RO list, we can begin dismissal
-				// If there are 12 ROs, we can begin dismissal
-				// If, however, neither is the case, we must appoint ourselves first
-				// After all these checks, we update the region cache by hand (spare ourselves the API reqs)
-				// Allowing us to continue spamming D and trust the region cache to reflect current state
-				// Finally, if we're out of non-successors to dismiss and successors to rename, 
-				// We inform the user that you're all out of stuff to do
-				// Otherwise, print out a "Appointed: TRUE, X/Y ROs DISMISSED" tally
-				// (also if there's 12 successors then like, well, get fucked ig)
-
 				updStatus(`ROing in ${region}`);
 
 				var region_cache = localStorage.getItem("rgregioncache");
@@ -267,7 +285,6 @@ document.addEventListener('keyup', function(event) {
 								ROCallback
 							).then((RO_success) => {
 								// Check to see if RO succeeded, and update cache only if so
-								console.log(RO_success);
 								if (RO_success) { 
 									console.log("Got response back - win!");
 									region_cache["already_ro"] = true;
@@ -277,9 +294,45 @@ document.addEventListener('keyup', function(event) {
 								}
 							});
 						} else { 
-							// Dismiss officers! Woo!
-							failStatus("TODO");
-							// TODO - dismiss officers until none remain
+							// Dismiss officers! Woo! Grab one off the stack lol
+							let dismissal_target = region_cache["officers"].pop();
+							let dismissal_nation = dismissal_target["nation"];
+							let dismissal_office = dismissal_target["office"];
+
+							updStatus(`Attempting to dismiss ${dismissal_nation}`);
+							
+							if (!dismissal_target["permissions"]["successor"]) { 
+								makeRequest(
+									`/page=region_control/region=${region}`, 
+									`page=region_control&region=${region}&chk=${chk}&nation=${dismissal_nation}&office_name=${dismissal_office}&abolishofficer=1`, 
+									dismissCallback
+								).then((dismiss_success) => {
+									// Check to see if RO succeeded, and update cache only if so
+									console.log(dismiss_success);
+									if (dismiss_success) { 
+										console.log(`Dismissed ${dismissal_nation} successfully\n${region_cache["officers"].length} ROs remaining`);
+										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+									} else { 
+										failStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
+										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+									}
+								});
+							} else { 
+								// Make dismissal remove all perms but successor, and rename the office
+								makeRequest(
+									`/page=region_control/region=${region}`, 
+									`page=region_control&region=${region}&chk=${chk}&nation=${dismissal_nation}&office_name=${suctitle}&authority_S=on&editofficer=1`, 
+									successorCallback
+								).then((dismiss_success) => {
+									if (dismiss_success) { 
+										console.log(`Dismissed ${dismissal_nation} successfully\n${region_cache["officers"].length} ROs remaining`);
+										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+									} else { 
+										failStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
+										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+									}
+								});
+							};
 						}
 						
 					}

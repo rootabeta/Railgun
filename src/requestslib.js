@@ -38,7 +38,7 @@ function buildCache(current_region) {
 	console.log(`Building cache for ${current_region} with ${USER_AGENT}`);
 
 	var headers = {};
-	fetch(`https://www.nationstates.net/cgi-bin/api.cgi?region=${current_region}&q=officers`, {
+	fetch(`https://www.nationstates.net/cgi-bin/api.cgi?region=${current_region}&q=officers+banlist`, {
 		headers: { 
 			"User-Agent": USER_AGENT,
 		},
@@ -50,6 +50,19 @@ function buildCache(current_region) {
 
 		var responseDocument = parser.parseFromString(body, "text/xml");
 		let officers = responseDocument.querySelector("OFFICERS").children;
+		var banlist = responseDocument.querySelector("BANNED").textContent;
+
+		// Empty banlist
+		if (!banlist) { 
+			banlist = [];
+		} else { 
+			// Split on nation names
+			banlist = banlist.split(":");
+		}
+
+		if (banlist.includes(nation)) { 
+			failStatus(`${nation} is banned from ${current_region}`);
+		}
 
 		// Found our own nation as an RO with PACE perms
 		var found_self = false;
@@ -89,9 +102,11 @@ function buildCache(current_region) {
 			}
 
 			// We have already tampered with this particular nation
+			// Removed for testing purposes
+			/*
 			if (officer_by == nation) { 
 				should_tamper = false;
-			}
+			}*/
 
 			let parsed_officer = {
 				"nation": officer_nation,
@@ -113,6 +128,8 @@ function buildCache(current_region) {
 		// If we don't, we know how long to wait for.
 		let cache = {
 			"region_name": current_region,
+			"banlist": banlist,
+			"cache_built": Date.now(),
 			"bucket_empty": (headers.get("ratelimit-remaining") == "0"),
 			"bucket_reset": (Date.now() + (parseInt(headers.get("ratelimit-reset")) * 1000)),
 			"already_ro": found_self,
@@ -122,7 +139,7 @@ function buildCache(current_region) {
 
 		console.log("Built cache successfully");
 		console.log(cache);
-	
+
 		localStorage.setItem("rgregioncache", JSON.stringify(cache));
 	});
 }

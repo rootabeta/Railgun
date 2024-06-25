@@ -29,6 +29,31 @@ function ROCallback(responseDocument) {
 	}
 }
 
+function successorCallback(responseDocument) { 
+	if (responseDocument.getElementsByClassName("info").length == 0) { 
+		failStatus("Failed to dismiss RO");
+		return false;
+	} else { 
+		successStatus(`Renamed successor ${responseDocument.getElementsByClassName("info")[0].getElementsByClassName("nlink")[0].href.split("=")[1]}`);
+		return true;
+	}
+}
+
+function dismissCallback(responseDocument) { 
+	if (responseDocument.getElementsByClassName("info").length == 0) { 
+		failStatus("Failed to dismiss RO");
+		return false;
+	}
+
+	if (responseDocument.getElementsByClassName("info")[0].textContent.includes("Dismissed ")) {
+		successStatus(`Dismissed ${responseDocument.getElementsByClassName("info")[0].getElementsByClassName("nlink")[0].href.split("=")[1]}`);
+		return true;
+	} else { 
+		failStatus("Could not dismiss RO");
+		return false;
+	}
+}
+
 function joinCallback(responseDocument) { 
 	if (responseDocument.body.textContent.includes("Welcome to the World Assembly, new member")) { 
 		let appnation = responseDocument.getElementsByClassName("bellink")[0].href.split("=")[1];
