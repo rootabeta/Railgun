@@ -10,12 +10,13 @@ The current list of implemented keybinds is:
 
 - A - Refresh the current page
 - F - Move to the current region
-- D - RO yourself in current region
+- D - RO yourself in current region and dismiss other ROs
 - R - Join WA on next puppet
 - E - Resign WA on current puppet
 - M - Clear WA application "magazine"
 - L - Load WA application into "magazine"
 - S - Endorse a nation
+- C - Manually refresh cached RO/banlist data
 
 ## DISCLAIMER
 
