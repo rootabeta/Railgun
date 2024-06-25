@@ -35,10 +35,16 @@ function unlockSimul() {
 }
 
 function buildCache(current_region) { 
+	// No user agent! Refuse to create/send the request.
+	if (!(USER && USER != "" && USER != "null")) {
+			failStatus("Cannot make web requests until user agent is set!");
+			return;
+	}
+
 	console.log(`Building cache for ${current_region} with ${USER_AGENT}`);
 
 	var headers = {};
-	fetch(`https://www.nationstates.net/cgi-bin/api.cgi?region=${current_region}&q=officers+banlist`, {
+	fetch(`https://www.nationstates.net/cgi-bin/api.cgi?script=${USER_URL}&region=${current_region}&q=officers+banlist`, {
 		headers: { 
 			"User-Agent": USER_AGENT,
 		},
