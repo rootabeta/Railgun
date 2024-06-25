@@ -102,6 +102,7 @@ function buildCache(current_region) {
 			}
 
 			// We have already tampered with this particular nation
+			if (officer_by == nation) {
 				should_tamper = false;
 			}
 
@@ -118,7 +119,7 @@ function buildCache(current_region) {
 			if (parsed_officer["tamper"]) { 
 				parsed_officers.push(parsed_officer);
 			}
-		}
+		};
 
 		// We store if we are out of requests, and when the bucket will reset
 		// This way, if our cache is empty, we can check if we have requests left

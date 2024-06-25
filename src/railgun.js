@@ -270,6 +270,55 @@ document.addEventListener('keyup', function(event) {
 							// If there is none, then ig we're fucked - alert the user and move on.
 							// Otherwise, dismiss from officers and set total_officers = 0
 							warnStatus("Too many officers, dismissing one");
+							for (var i=0; i<region_cache["officers"].length; i++) { 
+								var dismissal_target = region_cache["officers"][i];
+								// RO without successor
+								if (!dismissal_target["permissions"]["successor"]) { 
+									// Remove that item from the officers list
+									region_cache["officers"].splice(i, 1);
+									let dismissal_nation = dismissal_target["nation"];
+									let dismissal_office = dismissal_target["office"];
+
+									updStatus(`Attempting to dismiss ${dismissal_nation}`);
+									
+									if (!dismissal_target["permissions"]["successor"]) { 
+										makeRequest(
+											`/page=region_control/region=${region}`, 
+											`page=region_control&region=${region}&chk=${chk}&nation=${dismissal_nation}&office_name=${dismissal_office}&abolishofficer=1`, 
+											dismissCallback
+										).then((dismiss_success) => {
+											// Check to see if RO succeeded, and update cache only if so
+											console.log(dismiss_success);
+											if (dismiss_success) { 
+												console.log(`Dismissed ${dismissal_nation} successfully\n${region_cache["officers"].length} ROs remaining`);
+												// We know there is room now - override the selection system
+												region_cache["total_officers"] = 0;
+												localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+											} else { 
+												// Unlike any other RO attempt, here we assume that failure to dismiss is due to an issue with our permissions, 
+												// rather than an issue with being able to dismiss this specific nation
+												// This is because in this case, we are not an RO yet, and this could be because we are not delegate and thus could not, 
+												// even if there was room
+												// In other cases where we dismiss, we do so after becoming an RO ourselves, so we know we have executive powers, but
+												// because 12 ROs will prevent us from doing this, we must assume the user pressing the key is more fallible than NS's
+												// dismissal system. 
+												// It is not a perfect solution, but a perfect one would involve me writing more javascript than the significant quantity
+												// that I already have in pursuit of this project. For all practical applications, this approach suffices. This edge case
+												// is extraordinarily rare in any event. 
+												failStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
+												//localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
+											}
+										});
+										// We have made a request - now we exit the loop post-hate to prevent it from trying to make a second one
+										break;
+									}
+								}
+								// The one we looked at was a successor - move on to the next one
+							}
+
+							// If we reach this section, all the officers we could have dismissed have successor
+							failStatus("All officers have successor status - cannot make room");
+
 						} else if (region_cache["already_ro"] && region_cache["officers"].length == 0) { 
 							// No more officers to deface, alert user to inability to continue
 							failStatus("No more officers to dismiss");
