@@ -102,11 +102,8 @@ function buildCache(current_region) {
 			}
 
 			// We have already tampered with this particular nation
-			// Removed for testing purposes
-			/*
-			if (officer_by == nation) { 
 				should_tamper = false;
-			}*/
+			}
 
 			let parsed_officer = {
 				"nation": officer_nation,
