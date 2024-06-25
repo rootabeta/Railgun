@@ -140,6 +140,7 @@ document.addEventListener('keyup', function(event) {
 					console.log(`Building cache for ${current_region}`);
 					buildCache(current_region);
 					successStatus("Cache built");
+					var region_cache = localStorage.getItem("rgregioncache");
 				}
 				
 				break;
