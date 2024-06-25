@@ -328,7 +328,7 @@ document.addEventListener('keyup', function(event) {
 												// It is not a perfect solution, but a perfect one would involve me writing more javascript than the significant quantity
 												// that I already have in pursuit of this project. For all practical applications, this approach suffices. This edge case
 												// is extraordinarily rare in any event. 
-												failStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
+												warnStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
 												//localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
 											}
 										});
@@ -385,7 +385,7 @@ document.addEventListener('keyup', function(event) {
 										console.log(`Dismissed ${dismissal_nation} successfully\n${region_cache["officers"].length} ROs remaining`);
 										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
 									} else { 
-										failStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
+										warnStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
 										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
 									}
 								});
@@ -400,7 +400,7 @@ document.addEventListener('keyup', function(event) {
 										console.log(`Dismissed ${dismissal_nation} successfully\n${region_cache["officers"].length} ROs remaining`);
 										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
 									} else { 
-										failStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
+										warnStatus(`Failed to dismiss ${dismissal_nation} - skipping\n${region_cache["officers"].length} ROs remaining`); // Todo - skip?
 										localStorage.setItem("rgregioncache", JSON.stringify(region_cache));
 									}
 								});
