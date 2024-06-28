@@ -216,6 +216,14 @@ document.addEventListener('keyup', function(event) {
 					let appid = next_up["appid"]
 					updStatus(`Joining the World Assembly with ${appnation}`);
 
+					// Copy nation to clipboard as soon as key comes in, allowing paste while application
+					// awaits callback
+					navigator.clipboard.writeText(`https://www.nationstates.net/nation=${appnation}`);
+
+					// TODO: Evaluate joinCallback response to figure out if the application was wasted
+					// If so, do not commit change to magazine
+					// If, however, the application was invalid, or was processed successfully, commit
+					// the change made to the magazine
 					makeRequest(
 						"/cgi-bin/join_un.cgi", 
 						`nation=${appnation}&appid=${appid}`, 
@@ -289,9 +297,6 @@ document.addEventListener('keyup', function(event) {
 
 						// Not already an RO, and no room for new RO - we need to dismiss
 						if (!region_cache["already_ro"] && region_cache["total_officers"] >= 12) { 
-							// TODO: Select an RO that does NOT have successor permissions, and dismiss
-							// If there is none, then ig we're fucked - alert the user and move on.
-							// Otherwise, dismiss from officers and set total_officers = 0
 							warnStatus("Too many officers, dismissing one");
 							for (var i=0; i<region_cache["officers"].length; i++) { 
 								var dismissal_target = region_cache["officers"][i];
@@ -344,6 +349,8 @@ document.addEventListener('keyup', function(event) {
 
 						} else if (region_cache["already_ro"] && region_cache["officers"].length == 0) { 
 							// No more officers to deface, alert user to inability to continue
+							// TODO - Check if governor needs defacing. If so, deface and set to false. 
+							// If false, provide the "done" message
 							failStatus("No more officers to dismiss");
 						} else if (!region_cache["already_ro"]) { 
 							// RO self

@@ -61,7 +61,7 @@ function joinCallback(responseDocument) {
 		localStorage.setItem("rgnation", appnation); // Current nation
 
 		// Copy to clipboard if switching succeeded
-		navigator.clipboard.writeText(`https://www.nationstates.net/nation=${appnation}`); 
+		// navigator.clipboard.writeText(`https://www.nationstates.net/nation=${appnation}`); 
 		return true;
 	} else if (responseDocument.body.textContent.includes("Another WA member nation is currently using the same email")) {
 		failStatus("Already in WA");
