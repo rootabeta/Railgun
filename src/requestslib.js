@@ -4,41 +4,42 @@
 function prepareButtons() { 
 	let allButtons = document.querySelectorAll('button[type=submit]');
 	for (i=0;i<allButtons.length;i++) { 
-		allButtons[i].setAttribute("onclick", "$('form input[type=\"submit\"], form button').not(this).attr(\"disabled\", true).addClass(\"disabledForSimultaneity\");");
+		allButtons[i].setAttribute("onclick", "window.postMessage('SIMUL_LOCK'); $('form input[type=\"submit\"], form button').not(this).attr(\"disabled\", true).addClass(\"disabledForSimultaneity\");");
+//		allButtons[i].setAttribute("onclick", "window.postMessage('SIMUL_LOCK'); $('form input[type=\"submit\"], form button').attr(\"disabled\", true).addClass(\"disabledForSimultaneity\");");
 	}
 }
 
 // Functions to lock or unlock elements for simultaneity
 function lockSimul() { 
-        console.debug(`You are ${USER}`);
-        window.simulLocked = true;
-        let elements = document.querySelectorAll('button[type=submit]');
-        for (i=0;i<elements.length;i++) { 
-                let element = elements[i];
-                // Set simultaneity flag
-                element.setAttribute("disabledforsimultaneity", true);
-                // Disable element
-                element.setAttribute("disabled", true);
-        }
+	console.debug(`You are ${USER}`);
+	document.simulLocked = true;
+	let elements = document.querySelectorAll('button[type=submit]');
+	for (i=0;i<elements.length;i++) { 
+		let element = elements[i];
+		// Set simultaneity flag
+		element.setAttribute("disabledforsimultaneity", true);
+		// Disable element
+		element.setAttribute("disabled", true);
+	}
 }
 
 function unlockSimul() { 
-        window.simulLocked = false;
-        let elements = document.querySelectorAll('[disabledforsimultaneity]');
-        for (i=0;i<elements.length;i++) { 
-                let element = elements[i];
-                // Remove simultaneity flag
-                element.removeAttribute("disabledforsimultaneity");
-                // Re-enable element
-                element.removeAttribute("disabled");
-        }
+	document.simulLocked = false;
+	let elements = document.querySelectorAll('[disabledforsimultaneity]');
+	for (i=0;i<elements.length;i++) { 
+		let element = elements[i];
+		// Remove simultaneity flag
+		element.removeAttribute("disabledforsimultaneity");
+		// Re-enable element
+		element.removeAttribute("disabled");
+	}
 }
 
 function buildCache(current_region) { 
 	// No user agent! Refuse to create/send the request.
 	if (!(USER && USER != "" && USER != "null")) {
-			failStatus("Cannot make web requests until user agent is set!");
-			return;
+		failStatus("Cannot make web requests until user agent is set!");
+		return;
 	}
 
 	console.log(`Building cache for ${current_region} with ${USER_AGENT}`);
@@ -168,7 +169,7 @@ function makeRequest(url, payload, handlerCallback) {
 
 	// If we are already in simul, refuse to honor the request
 	// Otherwise, engage simultaneity and prepare to go warp speed
-	if (window.simulLocked) { 
+	if (document.simulLocked) { 
 		failStatus("Tried to run request during simultaneity");
 		return;
 	} else { 

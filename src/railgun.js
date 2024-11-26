@@ -1,3 +1,11 @@
+// Add handler for when buttons lock simultaneity out
+window.addEventListener("message", message => {
+	if (message.data == "SIMUL_LOCK") { 
+		lockSimul();
+	} else if (message.data == "SIMUL_UNLOCK") { 
+		unlockSimul();
+	}
+});
 // Get version of Railgun, for crafting requests
 let VERSION = chrome.runtime.getManifest().version;
 
@@ -111,7 +119,7 @@ document.addEventListener('keyup', function(event) {
 		return;
 	} else {
 		// Extra safeguard - if simultaneity in effect, drop any keybinds
-		if (window.simulLocked) { 
+		if (document.simulLocked) { 
 			warnStatus("Cannot process, simultaneity in effect!");
 			return;
 		}
@@ -284,8 +292,8 @@ document.addEventListener('keyup', function(event) {
 						let RO_name = rotitle;
 						// Tagging RO options
 						makeRequest(
-							`region=${region}`, 
-							`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
+							`region=${region}/page=region_control`, 
+							`region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
 							ROCallback
 						);
 
@@ -359,7 +367,7 @@ document.addEventListener('keyup', function(event) {
 							let RO_name = rotitle;
 							// Tagging RO options
 							makeRequest(
-								`region=${region}`, 
+								`region=${region}/page=region_control`, 
 								`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
 								ROCallback
 							).then((RO_success) => {
@@ -424,8 +432,8 @@ document.addEventListener('keyup', function(event) {
 					let RO_name = rotitle;
 					// Tagging RO options
 					makeRequest(
-						`region=${region}`, 
-						`page=region_control&region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
+						`page=region_control/region=${region}`, 
+						`region=${region}&chk=${chk}&nation=${nation}&office_name=${RO_name}&authority_A=on&authority_C=on&authority_E=on&authority_P=on&editofficer=1`, 
 						ROCallback
 					);
 
@@ -487,7 +495,7 @@ document.addEventListener('keyup', function(event) {
 				if (!document.location.href.includes("template-overall=none")) { 
 					updStatus(`Enabling template-overall=none`);
 					lockSimul();
-					document.location.href = `${document.location.href}/template-overall=none`;
+					document.location.href = `${document.location.href}?template-overall=none`;
 				}
 				break;
 		}
