@@ -4,7 +4,7 @@
 function prepareButtons() { 
 	let allButtons = document.querySelectorAll('button[type=submit]');
 	for (i=0;i<allButtons.length;i++) { 
-		allButtons[i].setAttribute("onclick", "$('form input[type=\"submit\"], form button').attr(\"disabled\", true).addClass(\"disabledForSimultaneity\");");
+		allButtons[i].setAttribute("onclick", "$('form input[type=\"submit\"], form button').not(this).attr(\"disabled\", true).addClass(\"disabledForSimultaneity\");");
 	}
 }
 
