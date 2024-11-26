@@ -180,7 +180,7 @@ function makeRequest(url, payload, handlerCallback) {
 	console.debug(USER_AGENT);
 	console.debug(USER_URL);
 
-	return fetch(`${url}/?template-overall=none&script=${USER_URL}&userclick=${USERCLICK}`, { 
+	return fetch(`${url}?template-overall=none&script=${USER_URL}&userclick=${USERCLICK}`, { 
 		method: "POST",
 		redirect: "follow", // https://forum.nationstates.net/viewtopic.php?p=41718911#p41718911
 		signal: AbortSignal.timeout(30_000), // A signal to timeout after 30s if no response has come back
